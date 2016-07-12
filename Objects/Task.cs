@@ -8,11 +8,13 @@ namespace ToDoList
   {
     private int _id;
     private string _description;
+    private int _categoryId;
 
-    public Task(string Description, int Id = 0)
+    public Task(string Description, int CategoryId, int Id = 0)
     {
       _id = Id;
       _description = Description;
+      _categoryId = CategoryId;
     }
 
     public override bool Equals(System.Object otherTask)
@@ -26,14 +28,25 @@ namespace ToDoList
           Task newTask = (Task) otherTask;
           bool idEquality = (this.GetId() == newTask.GetId());
           bool descriptionEquality = (this.GetDescription() == newTask.GetDescription());
-          return (idEquality && descriptionEquality);
+          bool categoryEquality = this.GetCategoryId() == newTask.GetCategoryId();
+          return (idEquality && descriptionEquality && categoryEquality);
         }
     }
 
-   public override int GetHashCode()
-   {
-     return this.GetId().GetHashCode();
-   }
+    public override int GetHashCode()
+    {
+      return this.GetId().GetHashCode();
+    }
+
+    public int GetCategoryId()
+    {
+      return _categoryId;
+    }
+
+    public void SetCategoryId(int newCategoryId)
+    {
+      _categoryId = newCategoryId;
+    }
 
     public int GetId()
     {
@@ -62,7 +75,8 @@ namespace ToDoList
       {
         int taskId = rdr.GetInt32(0);
         string taskDescription = rdr.GetString(1);
-        Task newTask = new Task(taskDescription, taskId);
+        int categoryId = rdr.GetInt32(2);
+        Task newTask = new Task(taskDescription,categoryId, taskId);
         allTasks.Add(newTask);
       }
 
@@ -84,12 +98,19 @@ namespace ToDoList
       SqlDataReader rdr;
       conn.Open();
 
-      SqlCommand cmd = new SqlCommand("INSERT INTO tasks (description) OUTPUT INSERTED.id VALUES (@TaskDescription);", conn);
+      SqlCommand cmd = new SqlCommand("INSERT INTO tasks (description, category_id) OUTPUT INSERTED.id VALUES (@TaskDescription, @TaskCategoryId);", conn);
 
       SqlParameter descriptionParameter = new SqlParameter();
       descriptionParameter.ParameterName = "@TaskDescription";
       descriptionParameter.Value = this.GetDescription();
+
+      SqlParameter categoryIdParameter = new SqlParameter();
+      categoryIdParameter.ParameterName = "@TaskCategoryId";
+      categoryIdParameter.Value = this.GetCategoryId();
+
       cmd.Parameters.Add(descriptionParameter);
+      cmd.Parameters.Add(categoryIdParameter);
+
       rdr = cmd.ExecuteReader();
 
       while(rdr.Read())
@@ -128,12 +149,15 @@ namespace ToDoList
 
       int foundTaskId = 0;
       string foundTaskDescription = null;
+      int foundTaskCategoryId = 0;
+
       while(rdr.Read())
       {
         foundTaskId = rdr.GetInt32(0);
         foundTaskDescription = rdr.GetString(1);
+        foundTaskCategoryId = rdr.GetInt32(2);
       }
-      Task foundTask = new Task(foundTaskDescription, foundTaskId);
+      Task foundTask = new Task(foundTaskDescription, foundTaskCategoryId, foundTaskId);
 
       if (rdr != null)
       {
